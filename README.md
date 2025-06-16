@@ -1,6 +1,8 @@
 # aicup_2025
 ## game
 there's a file of the little for the stall. 
+### todo 
+- [ ] fix: label word
 
 ## checkin system
 ▶ **thought**  
