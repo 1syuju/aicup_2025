@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>AICUP 簽到系統</title>
+</head>
+<body>
+  <h2>AICUP 電子簽到表</h2>
+  <input type="text" id="name" placeholder="請輸入中文姓名" required />
+  <button onclick="checkin()">簽到</button>
+  <div id="message"></div>
+
+  <script>
+    async function checkin() {
+      const name = document.getElementById("name").value.trim();
+      const res = await fetch("/checkin", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ name })
+      });
+      const data = await res.json();
+      document.getElementById("message").innerText = data.message;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>即時報到後臺</title>
+  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+</head>
+<body>
+  <h2>報到名單（即時更新）</h2>
+  <ul id="list"></ul>
+
+  <script>
+    const socket = io();
+
+    function append(name, time) {
+      const li = document.createElement("li");
+      li.textContent = `${name} - ${time}`;
+      document.getElementById("list").prepend(li);
+    }
+
+    fetch("/list")
+      .then(res => res.json())
+      .then(data => data.forEach(([name, time]) => append(name, time)));
+
+    socket.on("new_checkin", data => {
+      append(data.name, data.time);
+    });
+  </script>
+</body>
+</html>
