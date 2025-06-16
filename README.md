@@ -9,6 +9,9 @@ there's a file of the little for the stall.
 show them an qrcode for checkin 
 scan the qrcode, directed to a website
 write down there name in the block and click the btm to check in
+
+blame: vue+springboot+mySQL -> need to do some research 
+
 ### todo
 - [ ] learning flask
 - [ ] mysql
