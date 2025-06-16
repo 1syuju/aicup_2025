@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI CUP STALL</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        h1, h2 {
+            color: #333;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            margin-bottom: 15px;
+        }
+
+        #sentence-to-label {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+            min-height: 40px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #sentence-labeling-area button:nth-of-type(1) { /* Positive */
+            background-color: #7abbf8;
+        }
+        #sentence-labeling-area button:nth-of-type(1):hover {
+            background-color: #5a9ee0; 
+        }
+
+        #sentence-labeling-area button:nth-of-type(2) { /* Negative */
+            background-color: #dc3545;
+        }
+        #sentence-labeling-area button:nth-of-type(2):hover {
+            background-color: #b02a37;
+        }
+
+        textarea {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+
+        #custom-input-area button {
+            background-color: #ffc107;
+            color: #333;
+        }
+
+        #custom-input-area button:hover {
+            background-color: #e0a800;
+        }
+
+        #ai-result-area {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+
+        #ai-prediction {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        #ai-prediction.positive {
+            color: #28a745;
+        }
+
+        #ai-prediction.negative {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>你說AI聽懂嗎？情緒小測試！</h1>
+
+        <div id="sentence-labeling-area">
+            <h2>請標註以下句子的情緒 ( <span id="sentence-counter">1</span> / 10 )</h2>
+            <p id="sentence-to-label"></p>
+            <button onclick="labelSentence('positive')">正面</button>
+            <button onclick="labelSentence('negative')">負面</button>
+        </div>
+
+        <div id="custom-input-area" style="display: none;">
+            <h2>恭喜！您已完成句子標註</h2>
+            <p>請輸自己的句子 讓AI來試著分析看看吧！</p>
+            <textarea id="custom-sentence" rows="3" placeholder="請在此輸入您的句子..."></textarea>
+            <button onclick="analyzeCustomSentence()">開始分析</button>
+            <div id="ai-result-area" style="display: none;">
+                <h3>AI分析結果：</h3>
+                <p id="ai-prediction"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        //pretrain dataset
+        const positiveWords = [
+            "開心", "快樂", "高興", "喜悅", "興奮", "愉快", "幸福", "美好", "棒", "讚",
+            "喜歡", "愛", "感謝", "滿意", "舒服", "輕鬆", "安心", "幸運", "順利", "成功",
+            "真棒", "太棒了", "好極了", "完美", "優秀", "出色", "佩服", "崇拜", "期待", "盼望",
+            "溫暖", "晴朗", "陽光", "健康", "活力", "積極", "樂觀", "進步", "成長", "希望",
+            "鼓勵", "支持", "信任", "友好", "和諧", "平靜", "安靜", "舒適", "享受", "值得",
+            "慶祝", "祝福", "恭喜", "榮幸", "榮耀", "自豪", "驕傲", "傑出", "卓越", "非凡",
+            "可愛", "迷人", "有趣", "幽默", "活潑", "開朗", "熱情", "大方", "慷慨", "善良",
+            "美麗", "漂亮", "帥氣", "瀟灑", "優雅", "體貼", "溫柔", "細心", "耐心", "真誠",
+            "充實", "滿足", "喜出望外", "心花怒放", "眉開眼笑", "精神抖擻", "神采奕奕", "前途光明", "一片光明", "蒸蒸日上",
+            "前程似錦", "一帆風順", "萬事如意", "心想事成", "前景可期", "令人振奮", "激動人心", "無憂無慮", "充滿希望", "積極向上",
+            "很棒", "超棒", "好玩", "有趣", "贊", "強", "給力", "一流", "絕絕子", "太好了", "好",
+            "順心", "如願", "圓滿", "安慰", "療癒", "自在", "甜蜜", "溫馨", "親密", "貼心",
+            "和善", "善意", "誠懇", "信心", "自信", "勇敢", "堅強", "努力", "奮鬥", "拼搏",
+            "突破", "創新", "進取", "榮耀", "榮譽", "榮升", "晉升", "升遷", "表揚", "嘉獎",
+            "肯定", "認可", "嘉許", "欣慰", "感動", "感激", "感恩", "溫情", "親情", "友情",
+            "愛心", "善舉", "善行", "助人", "互助", "團結", "合作", "共贏", "雙贏", "美滿",
+            "幸福美滿", "甜美", "甜美回憶", "美夢成真", "夢想成真", "理想實現", "心滿意足", "心安理得", "心情愉快", "心情舒暢"
+        ];
+
+        const negativeWords = [
+            "難過", "悲傷", "傷心", "痛苦", "失望", "沮喪", "絕望", "生氣", "憤怒", "討厭",
+            "煩躁", "焦慮", "擔心", "害怕", "恐懼", "糟糕", "差勁", "壞", "不幸", "倒楣",
+            "失敗", "錯誤", "問題", "困難", "麻煩", "壓力", "疲勞", "累", "無聊", "寂寞",
+            "空虛", "孤獨", "可憐", "悲慘", "黑暗", "陰沉", "憂鬱", "消極",
+            "抱怨", "批評", "指責", "懷疑", "不安", "緊張", "恐怖", "可怕", "噁心",
+            "無奈", "無助", "心碎", "崩潰", "世界末日", "一團糟", "亂七八糟", "毫無頭緒", "不知所措", "手足無措",
+            "可惡", "該死", "混蛋", "垃圾", "廢物", "沒用", "愚蠢", "白痴", "笨蛋", "糊塗",
+            "懶惰", "消沉", "萎靡", "頹廢", "墮落", "邪惡", "醜陋", "骯髒", "污穢", "病毒",
+            "悲觀", "心灰意冷", "垂頭喪氣", "愁眉苦臉", "唉聲嘆氣", "前途渺茫", "烏雲密布", "雪上加霜", "禍不單行", "陷入困境",
+            "令人沮喪", "令人失望", "令人擔憂", "令人作嘔", "令人髮指", "怒氣沖沖", "火冒三丈", "咬牙切齒", "深惡痛絕", "忍無可忍",
+            "爛", "糟", "遜", "靠", "慘", "衰", "悶", "煩", "怒", "恨", "那可太有生活了",
+            "煩悶", "煩心", "煩憂", "難受", "煩惱", "心煩", "心累", "心痛", "心寒", "心酸",
+            "心塞", "心煩意亂", "心神不寧", "心驚膽戰", "心有餘悸", "心力交瘁", "心如死灰", "心灰意冷", "心情低落", "心情沉重",
+            "無望", "無助感", "無力", "無趣", "無聊至極", "無藥可救", "無計可施", "無可奈何", "無法挽回", "無法釋懷",
+            "無法接受", "無法忍受", "無法原諒", "無法理解", "無法釋懷", "無法釋放", "無法自拔", "無法自理", "無法自控", "無法自救",
+            "崩潰邊緣", "崩潰中", "崩潰了", "崩潰感", "崩潰狀態", "崩潰到極點", "崩潰到不行", "崩潰到爆", "崩潰到哭", "崩潰到笑"
+        ];
+
+        const sentencesToLabel = [
+            "今天天氣真好，陽光燦爛！",
+            "這部電影的結局真是太令人失望了。",
+            "我非常期待週末的旅行。",
+            "他的報告做得亂七八糟，完全沒有重點。",
+            "這家餐廳的服務態度非常友善。",
+            "學習一門新語言總是充滿挑戰，但也很有成就感。",
+            "昨晚我幾乎沒睡好，現在感覺很疲倦。",
+            "這個新計畫看起來很有潛力，希望能順利進行。",
+            "聽到那個消息，我心裡五味雜陳。",
+            "他的笑話讓大家都開懷大笑。"
+        ];
+
+        let currentSentenceIndex = 0;
+        const userLabels = []; 
+
+        const sentenceLabelingArea = document.getElementById('sentence-labeling-area');
+        const customInputArea = document.getElementById('custom-input-area');
+        const sentenceToLabelEl = document.getElementById('sentence-to-label');
+        const sentenceCounterEl = document.getElementById('sentence-counter');
+        const customSentenceEl = document.getElementById('custom-sentence');
+        const aiResultArea = document.getElementById('ai-result-area');
+        const aiPredictionEl = document.getElementById('ai-prediction');
+
+        // --- Functions ---
+
+        function displayCurrentSentence() {
+            if (currentSentenceIndex < sentencesToLabel.length) {
+                sentenceToLabelEl.textContent = sentencesToLabel[currentSentenceIndex];
+                sentenceCounterEl.textContent = currentSentenceIndex + 1;
+            } else {
+                // All sentences labeled
+                sentenceLabelingArea.style.display = 'none';
+                customInputArea.style.display = 'block';
+            }
+        }
+
+        function labelSentence(label) {
+            userLabels.push({ sentence: sentencesToLabel[currentSentenceIndex], label: label });
+            currentSentenceIndex++;
+            displayCurrentSentence();
+        }
+
+        function analyzeSentiment(sentence) {
+            let positiveScore = 0;
+            let negativeScore = 0;
+            const flag= "不"; // 常用的否定詞
+
+            // --- 分析正面詞彙 ---
+            positiveWords.forEach(word => {
+                if (sentence.includes(flag + word)) {
+                    negativeScore++;
+                } else if (sentence.includes(word)) {
+                    positiveScore++;
+                }
+            });
+
+            // --- 分析負面詞彙 ---
+            negativeWords.forEach(word => {
+                if (sentence.includes(flag + word)) {
+                    positiveScore++;
+                } else if (sentence.includes(word)) {
+                    negativeScore++;
+                }
+            });
+
+            if (positiveScore > negativeScore) {
+                return "正面";
+            } 
+            else if (negativeScore > positiveScore) {
+                return "負面";
+            } 
+            else{
+                return "中性/無法判斷 (未偵測到明顯情緒詞彙)";
+            }
+        }
+
+        function analyzeCustomSentence() {
+            const sentence = customSentenceEl.value.trim();
+            if (!sentence) {
+                alert("請先輸入您的句子！");
+                return;
+            }
+
+            const prediction = analyzeSentiment(sentence);
+            aiPredictionEl.textContent = prediction;
+            aiPredictionEl.className = ''; // Reset class
+
+            if (prediction === "正面") {
+                aiPredictionEl.classList.add('positive');
+            } else if (prediction === "負面") {
+                aiPredictionEl.classList.add('negative');
+            }
+
+            aiResultArea.style.display = 'block';
+        }
+
+        // --- Initial Load ---
+        displayCurrentSentence();
+    </script>
+</body>
+</html>
