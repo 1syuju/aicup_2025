@@ -3,6 +3,7 @@
 there's a file of the little for the stall. 
 ### todo 
 - [ ] fix: label word
+- [ ] 設定:不要讓外部可以直接透過更改網址取得後台資訊
 
 ## checkin system
 ▶ **thought**  
